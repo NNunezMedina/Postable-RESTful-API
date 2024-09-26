@@ -8,11 +8,11 @@ export const up: Migration = async (params) => {
   try {
     for (let i = 0; i < 10; i++) {
       const username = faker.internet.userName();
-      const password = await bcrypt.hash("password123", 10);
+      const password = await bcrypt.hash(faker.internet.password(), 10);
       const email = faker.internet.email();
       const firstName = faker.person.firstName();
       const lastName = faker.person.lastName();
-      const role = "user";
+      const role = Math.random() < 0.5 ? "user" : "admin";
       await client.query(
         `
         INSERT INTO users (username, password, email, first_name, last_name, role, created_at, updated_at)
