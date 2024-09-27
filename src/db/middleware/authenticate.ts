@@ -5,7 +5,7 @@ import { ApiError } from "./error";
 declare global {
   namespace Express {
     interface Request {
-      user?: string; 
+      user?: { id: number; name: string; role: string }; 
     }
   }
 }
@@ -36,7 +36,7 @@ export function authenticateUser(
       exp: number;
     };
 
-    req.user = payload.name; 
+    req.user = { id: payload.userId, name: payload.name, role: payload.userRole };
     console.log("Usuario autenticado:", req.user); 
     next();
   } catch (error) {
