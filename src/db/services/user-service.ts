@@ -3,6 +3,7 @@ import { ApiError } from "../middleware/error";
 import { User, UserParams, userSchema } from "../models/user";
 import {
   createUserInDB,
+  deleteUserFromDatabase,
   getUserByEmail,
   getUserByUsername,
 } from "../../data/user-data";
@@ -43,3 +44,12 @@ export async function validateCredentials(
 
   return user;
 }
+
+export async function deleteUser(username: string) {
+  const result = await deleteUserFromDatabase(username);
+  if (!result) {
+    throw new Error("No se pudo eliminar la cuenta del usuario"); 
+  }
+
+}
+
