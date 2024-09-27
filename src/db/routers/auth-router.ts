@@ -2,7 +2,8 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { validationHandler } from "../middleware/validation";
 import { userSchema } from "../models/user";
-import { createUser, validateCredentials } from "../services/user-service";
+import { createUser, deleteUser, validateCredentials } from "../services/user-service";
+import { authenticateUser } from "../middleware/authenticate";
 
 const authRouter = express.Router();
 
@@ -51,5 +52,21 @@ authRouter.post("/login", async (req, res, next) => {
       next(error);  
     }
   });
+
+  authRouter.delete("/me", authenticateUser, async (req, res, next) => {
+    try {
+      const username = req.user;
+
+      if (!username) {
+        return res.status(400).json({ ok: false, message: "Usuario no autenticado" });
+      }
   
+      await deleteUser(username);
+  
+      return res.status(200).json({ ok: true }); 
+    } catch (error) {
+        return res.status(500).json({ ok: false });
+    }
+  });
+
 export default authRouter;
