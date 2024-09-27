@@ -29,5 +29,20 @@ export async function getUserByUsername (username: string):  Promise<User | unde
   
     const result = await query(insertQuery, values);
     
-    return result.rows[0];  // Retorna un objeto que cumple con la interfaz User
+    return result.rows[0];  
+  }
+
+  export async function deleteUserFromDatabase(username: string): Promise<boolean> {
+    try {
+      const result = await query("DELETE FROM users WHERE username = $1", [username]);
+  
+      if (result && typeof result.rowCount === 'number') {
+        return result.rowCount > 0; 
+      }
+  
+      return false; 
+    } catch (error) {
+      console.error("Error al eliminar usuario:", error);
+      throw new Error("Error en la base de datos"); 
+    }
   }
