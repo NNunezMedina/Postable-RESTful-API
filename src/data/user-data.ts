@@ -50,29 +50,41 @@ export async function getUserByUsername (username: string):  Promise<User | unde
   export const UserData = {
     async updateUser(userId: number, updates: Partial<User>): Promise<User | null> {
       try {
-        // Mapea los campos de actualizaciones a los nombres de columna correctos
         const mappedUpdates: Partial<Record<string, any>> = {
           first_name: updates.firstName,
           last_name: updates.lastName,
           email: updates.email,
         };
   
-        // Filtra los valores no definidos
         const keys = Object.keys(mappedUpdates).filter(key => mappedUpdates[key] !== undefined);
         const values = keys.map(key => mappedUpdates[key]);
-        
-        // Genera la consulta dinámica
+
         const setClause = keys.map((key, index) => `${key} = $${index + 1}`).join(", ");
         const result = await query(
           `UPDATE users SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = $${values.length + 1} RETURNING *`,
           [...values, userId]
         );
   
-        return result.rows[0] || null; // Devuelve el usuario actualizado o null si no se encontró
+        return result.rows[0] || null; 
       } catch (error) {
         console.error("Error al actualizar el usuario en la base de datos:", error);
         throw new Error("Error al actualizar el usuario.");
       }
     },
   };
+
+  export async function getUserById(userId: number) {
+    try {
+      const result = await query(
+        `SELECT id, username, email, first_name AS "firstName", last_name AS "lastName", role, created_at AS "createdAt", updated_at AS "updatedAt" 
+       FROM users WHERE id = $1`,
+        [userId]
+      );
+  
+      return result.rows[0] || null; 
+    } catch (error) {
+      console.error("Error getting user from database:", error);
+      throw new Error("Error getting user.");
+    }
+  }
   

@@ -13,7 +13,7 @@ export function validationHandler<T>(schema: ZodSchema<T>) {
       if (error instanceof ZodError) {
         console.log(error);
         next(
-          new ApiError("Error de validación", 400, formatIssues(error.issues))
+          new ApiError("Error at validation", 400, formatIssues(error.issues))
         );
       } else {
         next(error);

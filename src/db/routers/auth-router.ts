@@ -60,7 +60,7 @@ authRouter.post("/login", async (req, res, next) => {
 
 authRouter.delete("/me", authenticateUser, async (req, res, next) => {
     try {
-      const userId = req.user?.id; // Cambia `username` a `userId` y asegúrate de obtener el ID
+      const userId = req.user?.id; 
   
       if (!userId) {
         return res
@@ -68,12 +68,12 @@ authRouter.delete("/me", authenticateUser, async (req, res, next) => {
           .json({ ok: false, message: "User not authenticated" });
       }
   
-      await deleteUser(userId); // Asegúrate de pasar el ID del usuario
+      await deleteUser(userId); 
   
       return res.status(200).json({ ok: true });
     } catch (error) {
-      console.error("Error al eliminar el usuario:", error);
-      return res.status(500).json({ ok: false, message: "Error interno del servidor." });
+      console.error("Error at elminating user:", error);
+      return res.status(500).json({ ok: false, message: "Internal error from server." });
     }
   });
 
@@ -86,7 +86,7 @@ authRouter.delete("/me", authenticateUser, async (req, res, next) => {
       if (!userId) {
         return res.status(400).json({
           ok: false,
-          message: "ID de usuario no encontrado.",
+          message: "User ID not found.",
         });
       }
   
@@ -99,7 +99,7 @@ authRouter.delete("/me", authenticateUser, async (req, res, next) => {
       if (!updatedUser) {
         return res.status(400).json({
           ok: false,
-          message: "Error al actualizar el perfil.",
+          message: "Error updating profile.",
         });
       }
   
@@ -108,10 +108,10 @@ authRouter.delete("/me", authenticateUser, async (req, res, next) => {
         data: updatedUser,
       });
     } catch (error) {
-      console.error("Error al actualizar el perfil:", error);
+      console.error("Error updating profile:", error);
       return res.status(500).json({
         ok: false,
-        message: "Error interno del servidor.",
+        message: "Internal error server.",
       });
     }
   });

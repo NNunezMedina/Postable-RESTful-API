@@ -19,13 +19,9 @@ export function authenticateUser(
 ) {
   const token = req.headers.authorization?.split(" ")[1];
 
-  console.log("Token recibido:", token); 
-
   if (!token) {
-    return next(new ApiError("No autorizado", 401));
+    return next(new ApiError("Not authorized", 401));
   }
-
-  console.log("JWT Secret:", jwtSecret);
 
   try {
     const payload = jwt.verify(token, jwtSecret) as {
@@ -37,10 +33,9 @@ export function authenticateUser(
     };
 
     req.user = { id: payload.userId, name: payload.name, role: payload.userRole };
-    console.log("Usuario autenticado:", req.user); 
     next();
   } catch (error) {
-    console.error("Error de autenticación:", error);
-    return next(new ApiError("No autorizado", 401));
+    console.error("Error at authentication:", error);
+    return next(new ApiError("Not authorized", 401));
   }
 }

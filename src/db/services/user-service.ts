@@ -5,6 +5,7 @@ import {
   createUserInDB,
   deleteUserFromDatabase,
   getUserByEmail,
+  getUserById,
   getUserByUsername,
   UserData,
 } from "../../data/user-data";
@@ -56,13 +57,32 @@ export async function deleteUser(userId: number) {
 
 export async function updateUserProfile(userId: number, updates: Partial<User>): Promise<User | null> {
   try {
-    // Llama a la capa de datos para actualizar el perfil
+
     const updatedUser = await UserData.updateUser(userId, updates);
 
-    return updatedUser; // Devuelve el usuario actualizado
+    return updatedUser; 
   } catch (error) {
-    console.error("Error actualizando el perfil del usuario:", error);
-    throw new Error("Error al actualizar el perfil del usuario.");
+    console.error("Error updating user profile:", error);
+    throw new Error("Error updating user profile.");
   }
 }
+
+export async function getUserProfile(userId: number) {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role:user.role,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
+
+
 
