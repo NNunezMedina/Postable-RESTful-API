@@ -7,7 +7,7 @@ export const up: Migration = async (params) => {
     const userResult = await client.query(`SELECT id FROM users`);
     const userIds = userResult.rows.map((row) => row.id);
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 30; i++) {
       const content = faker.lorem.paragraphs(2);
       const userId = userIds[Math.floor(Math.random() * userIds.length)];
 
