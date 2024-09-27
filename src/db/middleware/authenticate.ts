@@ -5,7 +5,7 @@ import { ApiError } from "./error";
 declare global {
   namespace Express {
     interface Request {
-      user?: { id: number; name: string; role: string }; 
+      user?: { id: number; name: string; role: string };
     }
   }
 }
@@ -25,14 +25,18 @@ export function authenticateUser(
 
   try {
     const payload = jwt.verify(token, jwtSecret) as {
-      userId: number; 
+      userId: number;
       userRole: string;
       name: string;
       iat: number;
       exp: number;
     };
 
-    req.user = { id: payload.userId, name: payload.name, role: payload.userRole };
+    req.user = {
+      id: payload.userId,
+      name: payload.name,
+      role: payload.userRole,
+    };
     next();
   } catch (error) {
     console.error("Error at authentication:", error);
