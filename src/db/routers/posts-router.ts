@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createNewPost,
   fetchAllPosts,
+  likePost,
   updatePost,
 } from "../services/posts-service";
 import { GetPost } from "../models/posts";
@@ -106,4 +107,38 @@ postsRouter.patch("/posts/:id", authenticateUser, async (req, res) => {
   }
 });
 
+postsRouter.post('/posts/:postId/like', authenticateUser, async (req, res) => {
+  const { postId } = req.params; // postId es un string
+  const userId = req.user?.id; // Obteniendo el userId del objeto req después de la autenticación
+
+  // Comprobar si userId está presente y es un número
+  if (typeof userId !== 'number') {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    // Convertir postId a número
+    const numericPostId = parseInt(postId, 10);
+    if (isNaN(numericPostId)) {
+      return res.status(400).json({ message: 'Invalid postId' });
+    }
+
+    // Intentar dar like al post
+    const response = await likePost(userId, numericPostId);
+    return res.status(200).json(response); // Asegúrate de retornar la respuesta aquí
+  } catch (error) {
+    // Manejo de errores
+    if (error instanceof Error) {
+      if (error.message === 'User has already liked this post') {
+        return res.status(400).json({ message: 'You have already liked this post' });
+      } else if (error.message === 'Post not found') {
+        return res.status(404).json({ message: 'Post not found' });
+      } else {
+        return res.status(500).json({ message: 'Error liking post' });
+      }
+    } else {
+      return res.status(500).json({ message: 'An unknown error occurred' });
+    }
+  }
+});
 export default postsRouter;

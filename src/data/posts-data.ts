@@ -109,3 +109,43 @@ export async function updatePostInDb(
 
   return rows[0];
 }
+
+type QueryResult = {
+    rowCount: number | null;
+    rows: any[];
+  };
+
+  export const checkIfUserLikedPost = async (postId: number, userId: number) => {
+    const result: QueryResult = await query(
+      `SELECT * FROM likes WHERE post_id = $1 AND user_id = $2`,
+      [postId, userId]
+    );
+  
+    // Asegurarse de que result.rowCount no sea null
+    return result.rowCount !== null && result.rowCount > 0;
+  };
+  
+  // Insertar un like en la tabla likes
+  export const likePostInDb = async (postId: number, userId: number) => {
+    await query(
+      `INSERT INTO likes (post_id, user_id) VALUES ($1, $2)`,
+      [postId, userId]
+    );
+  };
+  
+  // Obtener el número de likes para un post específico
+  export const getLikeCountForPost = async (postId: number) => {
+    const result: QueryResult = await query(
+      `SELECT COUNT(*) AS likes_count FROM likes WHERE post_id = $1`,
+      [postId]
+    );
+    return parseInt(result.rows[0].likes_count, 10);
+  };
+  
+  export const getPostById = async (postId: number) => {
+    const result: QueryResult = await query(
+      `SELECT id, content, created_at, updated_at, user_id FROM posts WHERE id = $1`,
+      [postId]
+    );
+    return result.rows[0];
+  };
