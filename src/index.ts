@@ -3,6 +3,7 @@ import authRouter from "./db/routers/auth-router";
 import errorHandler from "./db/middleware/error";
 import dotenv from 'dotenv';
 import userRouter from "./db/routers/user-router";
+import postsRouter from "./db/routers/posts-router";
 dotenv.config();
 
 const app = express();
@@ -12,6 +13,8 @@ app.use(express.json());
 app.use(authRouter);
 
 app.use(userRouter);
+
+app.use(postsRouter);
 
 app.use(errorHandler);
 
