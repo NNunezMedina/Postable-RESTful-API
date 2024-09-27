@@ -1,7 +1,8 @@
 import express from "express";
+import jwt from "jsonwebtoken";
 import { validationHandler } from "../middleware/validation";
 import { userSchema } from "../models/user";
-import { createUser } from "../services/user-service";
+import { createUser, validateCredentials } from "../services/user-service";
 
 const authRouter = express.Router();
 
@@ -31,4 +32,24 @@ authRouter.post(
   }
 );
 
+const jwtSecret = process.env['JWT_SECRET'] || "your_jwt_secret_key";
+
+authRouter.post("/login", async (req, res, next) => {
+    try {
+      const user = await validateCredentials(req.body);
+  
+      const payload = {
+        userId: user.id,
+        userRole: user.role,
+        name: user.username,  
+      };
+  
+      const token = jwt.sign(payload, jwtSecret, { expiresIn: "10m" });
+  
+      res.json({ ok: true, data: { token } });
+    } catch (error) {
+      next(error);  
+    }
+  });
+  
 export default authRouter;
