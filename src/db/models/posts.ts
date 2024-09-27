@@ -22,3 +22,10 @@ export const GetPostSchema = z.object({
     content: string;
     userId: number;
   }
+
+  export const PostResponseSchema = z.object({
+    ok: z.boolean(),
+    data: GetPostSchema // Reutiliza GetPostSchema para validar la estructura del post
+});
+
+export type PostResponse = z.infer<typeof PostResponseSchema>;

@@ -115,37 +115,61 @@ type QueryResult = {
     rows: any[];
   };
 
-  export const checkIfUserLikedPost = async (postId: number, userId: number) => {
-    const result: QueryResult = await query(
-      `SELECT * FROM likes WHERE post_id = $1 AND user_id = $2`,
-      [postId, userId]
-    );
+export const checkIfUserLikedPost = async (postId: number, userId: number) => {
+  const result: QueryResult = await query(
+    `SELECT * FROM likes WHERE post_id = $1 AND user_id = $2`,
+    [postId, userId]
+  );
+
+  // Asegurarse de que result.rowCount no sea null
+  return result.rowCount !== null && result.rowCount > 0;
+};
+
+// Insertar un like en la tabla likes
+export const likePostInDb = async (postId: number, userId: number) => {
+  await query(
+    `INSERT INTO likes (post_id, user_id) VALUES ($1, $2)`,
+    [postId, userId]
+  );
+};
+
+// Obtener el número de likes para un post específico
+export const getLikeCountForPost = async (postId: number) => {
+  const result: QueryResult = await query(
+    `SELECT COUNT(*) AS likes_count FROM likes WHERE post_id = $1`,
+    [postId]
+  );
+  return parseInt(result.rows[0].likes_count, 10) ;
+};
+
+export const getPostById = async (postId: number) => {
+  const result: QueryResult = await query(
+    `SELECT id, content, created_at, updated_at, user_id FROM posts WHERE id = $1`,
+    [postId]
+  );
+  return result.rows[0];
+};
+
+export async function removeLikeFromPost(postId: number, userId: number) {
+    try {
+      const post = await query('SELECT * FROM posts WHERE id = $1', [postId]);
+      
+      if (!post.rows.length) {
+        throw new Error('Post not found');
+      }
   
-    // Asegurarse de que result.rowCount no sea null
-    return result.rowCount !== null && result.rowCount > 0;
-  };
+      // Eliminar el like del post
+      const result = await query(
+        'DELETE FROM likes WHERE post_id = $1 AND user_id = $2 RETURNING *',
+        [postId, userId]
+      );
   
-  // Insertar un like en la tabla likes
-  export const likePostInDb = async (postId: number, userId: number) => {
-    await query(
-      `INSERT INTO likes (post_id, user_id) VALUES ($1, $2)`,
-      [postId, userId]
-    );
-  };
+      if (!result.rows.length) {
+        throw new Error('Like not found');
+      }
   
-  // Obtener el número de likes para un post específico
-  export const getLikeCountForPost = async (postId: number) => {
-    const result: QueryResult = await query(
-      `SELECT COUNT(*) AS likes_count FROM likes WHERE post_id = $1`,
-      [postId]
-    );
-    return parseInt(result.rows[0].likes_count, 10);
-  };
-  
-  export const getPostById = async (postId: number) => {
-    const result: QueryResult = await query(
-      `SELECT id, content, created_at, updated_at, user_id FROM posts WHERE id = $1`,
-      [postId]
-    );
-    return result.rows[0];
-  };
+      return post.rows[0]; // Devuelve el post original
+    } catch (error) {
+      throw error;
+    }
+  }

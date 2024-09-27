@@ -8,6 +8,7 @@ import {
   GetPostsParams,
   insertPost,
   likePostInDb,
+  removeLikeFromPost,
   updatePostInDb,
 } from "../../data/posts-data";
 import { GetPost, PostSchema } from "../models/posts";
@@ -105,3 +106,19 @@ export const likePost = async (userId: number, postId: number) => {
       },
     };
   };
+
+  export async function deleteLike(postId: number, userId: number) {
+    try {
+      const post = await removeLikeFromPost(postId, userId);
+      return post;
+    } catch (error) {
+      const e = error as Error; // Afirmación de tipo
+  
+      if (e.message === 'Post not found') {
+        throw { status: 404, message: 'Post not found' };
+      } else if (e.message === 'Like not found') {
+        throw { status: 404, message: 'Like not found' };
+      }
+      throw { status: 500, message: 'Internal Server Error' };
+    }
+  }

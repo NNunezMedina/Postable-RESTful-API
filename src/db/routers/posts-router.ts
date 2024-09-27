@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createNewPost,
+  deleteLike,
   fetchAllPosts,
   likePost,
   updatePost,
@@ -90,7 +91,9 @@ postsRouter.patch("/posts/:id", authenticateUser, async (req, res) => {
     const userId = req.user?.id;
 
     if (userId === undefined) {
-      return res.status(401).json({ ok: false, message: "Unauthorized access." });
+      return res
+        .status(401)
+        .json({ ok: false, message: "Unauthorized access." });
     }
 
     const updatedPost = await updatePost({ id: Number(id), content, userId });
@@ -100,27 +103,29 @@ postsRouter.patch("/posts/:id", authenticateUser, async (req, res) => {
       return res.status(404).json({ ok: false, message: "Post not found." });
     }
     if (error.message === "Unauthorized access.") {
-      return res.status(401).json({ ok: false, message: "Unauthorized access." });
+      return res
+        .status(401)
+        .json({ ok: false, message: "Unauthorized access." });
     }
     console.error("Error updating post:", error);
     return res.status(500).json({ ok: false, message: "Error updating post." });
   }
 });
 
-postsRouter.post('/posts/:postId/like', authenticateUser, async (req, res) => {
+postsRouter.post("/posts/:postId/like", authenticateUser, async (req, res) => {
   const { postId } = req.params; // postId es un string
   const userId = req.user?.id; // Obteniendo el userId del objeto req después de la autenticación
 
   // Comprobar si userId está presente y es un número
-  if (typeof userId !== 'number') {
-    return res.status(401).json({ message: 'Unauthorized' });
+  if (typeof userId !== "number") {
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
   try {
     // Convertir postId a número
     const numericPostId = parseInt(postId, 10);
     if (isNaN(numericPostId)) {
-      return res.status(400).json({ message: 'Invalid postId' });
+      return res.status(400).json({ message: "Invalid postId" });
     }
 
     // Intentar dar like al post
@@ -129,16 +134,69 @@ postsRouter.post('/posts/:postId/like', authenticateUser, async (req, res) => {
   } catch (error) {
     // Manejo de errores
     if (error instanceof Error) {
-      if (error.message === 'User has already liked this post') {
-        return res.status(400).json({ message: 'You have already liked this post' });
-      } else if (error.message === 'Post not found') {
-        return res.status(404).json({ message: 'Post not found' });
+      if (error.message === "User has already liked this post") {
+        return res
+          .status(400)
+          .json({ message: "You have already liked this post" });
+      } else if (error.message === "Post not found") {
+        return res.status(404).json({ message: "Post not found" });
       } else {
-        return res.status(500).json({ message: 'Error liking post' });
+        return res.status(500).json({ message: "Error liking post" });
       }
     } else {
-      return res.status(500).json({ message: 'An unknown error occurred' });
+      return res.status(500).json({ message: "An unknown error occurred" });
     }
   }
 });
+
+postsRouter.delete(
+  "/posts/:postId/like",
+  authenticateUser,
+  async (req, res) => {
+    const { postId } = req.params; // postId es un string
+    const userId = req.user?.id; // Asumiendo que el middleware establece req.user
+
+    // Verifica si userId está definido
+    if (userId === undefined) {
+      return res.status(401).json({ ok: false, message: "Unauthorized" });
+    }
+
+    try {
+      const post = await deleteLike(parseInt(postId), userId); // Asegúrate de que postId sea un número
+      return res.status(200).json({
+        ok: true,
+        data: {
+          id: post.id,
+          content: post.content,
+          createdAt: post.createdAt,
+          updatedAt: post.updatedAt,
+          username: post.username,
+          likesCount: post.likesCount - 1, // Actualiza el contador de likes si es necesario
+        },
+      });
+    } catch (error) {
+      // Manejo de errores
+      if (error instanceof Error) {
+        if (error.message === "User has already liked this post") {
+          return res
+            .status(400)
+            .json({ ok: false, message: "You have already liked this post" });
+        } else if (error.message === "Post not found") {
+          return res.status(404).json({ ok: false, message: "Post not found" });
+        } else if (error.message === "Like not found") {
+          return res.status(404).json({ ok: false, message: "Like not found" });
+        } else {
+          return res
+            .status(500)
+            .json({ ok: false, message: "Error unliking post" });
+        }
+      } else {
+        return res
+          .status(500)
+          .json({ ok: false, message: "An unknown error occurred" });
+      }
+    }
+  }
+);
+
 export default postsRouter;
