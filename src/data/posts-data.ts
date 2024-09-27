@@ -58,3 +58,20 @@ export async function getAllPosts(params: GetPostsParams) {
         throw new Error("Error getting posts.");
     }
 }
+
+interface CreatePostParams {
+    content: string;
+    userId: number;
+  }
+  export async function insertPost({ content, userId }: CreatePostParams): Promise<any> {
+    const sql = `
+      INSERT INTO posts (content, user_id, created_at, updated_at)
+      VALUES ($1, $2, NOW(), NOW())
+      RETURNING id, content, created_at AS "createdAt", updated_at AS "updatedAt", $2 AS "userId", 0 AS "likesCount";
+    `;
+  
+    const params = [content, userId];
+    const result = await query(sql, params);
+  
+    return result.rows[0];
+  }

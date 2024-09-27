@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { fetchAllPosts } from "../services/posts-service";
+import { createNewPost, fetchAllPosts } from "../services/posts-service";
 import { GetPost } from "../models/posts";
+import { authenticateUser } from "../middleware/authenticate";
 
 const postsRouter = Router();
 
@@ -45,5 +46,27 @@ postsRouter.get("/posts/:username", async (req, res) => {
     return res.status(500).json({ ok: false, message: "Error getting posts." });
   }
 });
+
+postsRouter.post("/posts", authenticateUser, async (req, res) => {
+  try {
+    const { content } = req.body;
+    const userId = req.user?.id;
+
+    if (typeof userId !== "number") {
+      return res.status(401).json({ ok: false, message: "Unauthorized: Invalid user ID." });
+    }
+
+    const newPost = await createNewPost({ content, userId });
+    return res.status(201).json({ ok: true, data: newPost });
+  } catch (error: any) {
+    if (error.message === "Invalid input data.") {
+      return res.status(400).json({ ok: false, message: "Validation error: " + error.message });
+    }
+    console.error("Error creating post:", error);
+    return res.status(500).json({ ok: false, message: "Error creating post." });
+  }
+});
+
+
 
 export default postsRouter;

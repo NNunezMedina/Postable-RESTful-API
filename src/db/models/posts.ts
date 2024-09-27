@@ -12,3 +12,13 @@ export const GetPostSchema = z.object({
   export type GetPostParams = z.infer<typeof GetPostSchema>;
 
   export type GetPost = GetPostParams;
+
+ export const PostSchema = z.object({
+    content: z.string().min(1, "Content is required"),  
+    userId: z.number().int(),  
+  });
+  
+ export interface CreateNewPostParams {
+    content: string;
+    userId: number;
+  }
