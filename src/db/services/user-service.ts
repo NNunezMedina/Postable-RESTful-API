@@ -6,6 +6,7 @@ import {
   deleteUserFromDatabase,
   getUserByEmail,
   getUserByUsername,
+  UserData,
 } from "../../data/user-data";
 
 export async function createUser(userInput: UserParams): Promise<User> {
@@ -45,11 +46,23 @@ export async function validateCredentials(
   return user;
 }
 
-export async function deleteUser(username: string) {
-  const result = await deleteUserFromDatabase(username);
+export async function deleteUser(userId: number) {
+  const result = await deleteUserFromDatabase(userId);
   if (!result) {
-    throw new Error("No se pudo eliminar la cuenta del usuario"); 
+    throw new Error("Couldn't eliminate the user account"); 
   }
 
+}
+
+export async function updateUserProfile(userId: number, updates: Partial<User>): Promise<User | null> {
+  try {
+    // Llama a la capa de datos para actualizar el perfil
+    const updatedUser = await UserData.updateUser(userId, updates);
+
+    return updatedUser; // Devuelve el usuario actualizado
+  } catch (error) {
+    console.error("Error actualizando el perfil del usuario:", error);
+    throw new Error("Error al actualizar el perfil del usuario.");
+  }
 }
 

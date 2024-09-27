@@ -32,9 +32,9 @@ export async function getUserByUsername (username: string):  Promise<User | unde
     return result.rows[0];  
   }
 
-  export async function deleteUserFromDatabase(username: string): Promise<boolean> {
+  export async function deleteUserFromDatabase(userId: number): Promise<boolean> {
     try {
-      const result = await query("DELETE FROM users WHERE username = $1", [username]);
+      const result = await query("DELETE FROM users WHERE id = $1", [userId]);
   
       if (result && typeof result.rowCount === 'number') {
         return result.rowCount > 0; 
@@ -42,7 +42,37 @@ export async function getUserByUsername (username: string):  Promise<User | unde
   
       return false; 
     } catch (error) {
-      console.error("Error al eliminar usuario:", error);
-      throw new Error("Error en la base de datos"); 
+      console.error("Error at eliminating user", error);
+      throw new Error("Error in database"); 
     }
   }
+
+  export const UserData = {
+    async updateUser(userId: number, updates: Partial<User>): Promise<User | null> {
+      try {
+        // Mapea los campos de actualizaciones a los nombres de columna correctos
+        const mappedUpdates: Partial<Record<string, any>> = {
+          first_name: updates.firstName,
+          last_name: updates.lastName,
+          email: updates.email,
+        };
+  
+        // Filtra los valores no definidos
+        const keys = Object.keys(mappedUpdates).filter(key => mappedUpdates[key] !== undefined);
+        const values = keys.map(key => mappedUpdates[key]);
+        
+        // Genera la consulta dinámica
+        const setClause = keys.map((key, index) => `${key} = $${index + 1}`).join(", ");
+        const result = await query(
+          `UPDATE users SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = $${values.length + 1} RETURNING *`,
+          [...values, userId]
+        );
+  
+        return result.rows[0] || null; // Devuelve el usuario actualizado o null si no se encontró
+      } catch (error) {
+        console.error("Error al actualizar el usuario en la base de datos:", error);
+        throw new Error("Error al actualizar el usuario.");
+      }
+    },
+  };
+  
