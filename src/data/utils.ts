@@ -44,8 +44,13 @@ export function buildQueryAndParams({
     }
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    const orderByColumn = orderBy === 'likesCount' ? 'likesCount' : 'createdAt';
-    const query = `${baseQuery} ${whereClause} GROUP BY p.id, u.username ORDER BY ${orderByColumn} ${order} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    const orderByColumn = orderBy === 'likesCount' ? 'likesCount' : 'p.created_at';
+    const orderDirection = order === 'asc' ? 'ASC' : 'DESC';
+
+    const query = `${baseQuery} ${whereClause} 
+        GROUP BY p.id, p.content, p.created_at, p.updated_at, p.user_id, u.username 
+        ORDER BY ${orderByColumn} ${orderDirection} 
+        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
 
     params.push(limit, offset);
 

@@ -16,13 +16,24 @@ postsRouter.get("/posts", async (req, res, next) => {
   try {
     const { page, limit, username, orderBy, order } = req.query;
 
+    const parsedPage = parseInt(page as string, 10);
+    const parsedLimit = parseInt(limit as string, 10);
+
     const params = {
-      page: parseInt(page as string, 10) || 1,
-      limit: parseInt(limit as string, 10) || 10,
+      page: !isNaN(parsedPage) && parsedPage > 0 ? parsedPage : 1,
+      limit: !isNaN(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10,
       username: (username as string) || undefined,
       orderBy: (orderBy as "createdAt" | "likesCount") || "createdAt",
       order: (order as "asc" | "desc") || "asc",
     };
+
+    if (!["createdAt", "likesCount"].includes(params.orderBy)) {
+      params.orderBy = "createdAt";
+    }
+
+    if (!["asc", "desc"].includes(params.order)) {
+      params.order = "asc";
+    }
 
     const posts: GetPost[] = await fetchAllPosts(params);
     return res.json(posts);

@@ -1,6 +1,6 @@
 import { query } from "../db";
 import { GetPostSchema } from "../db/models/posts";
-import { buildPagination, buildQueryAndParams } from "./utils";
+import { buildPagination} from "./utils";
 
 export interface GetPostsParams {
   page?: number;
@@ -20,29 +20,62 @@ export async function getAllPosts(params: GetPostsParams) {
   } = params;
 
   const { offset } = buildPagination({ page, limit });
-  const { query: sqlQuery, params: queryParams } = buildQueryAndParams({
-    username,
-    orderBy,
-    order,
-    offset,
-    limit,
-  });
+
+  let sqlQuery: string;
+  let fullQueryParams: any[];
+
+  const orderField = orderBy === "likesCount" ? "likes_count" : "p.created_at";
+
+  if (username) {
+    sqlQuery = `
+    SELECT 
+      p.*, 
+      u.username,
+      COALESCE((SELECT COUNT(*) FROM likes WHERE post_id = p.id), 0) AS likes_count
+    FROM 
+      posts p
+    LEFT JOIN 
+      users u ON p.user_id = u.id
+    WHERE 
+      u.username = $1
+    ORDER BY 
+      ${orderField} ${order} 
+    LIMIT 
+      $2 OFFSET $3
+  `;
+  fullQueryParams = [username, limit, offset];
+  } else {
+    sqlQuery = `
+      SELECT 
+        p.*, 
+        u.username,
+        COALESCE((SELECT COUNT(*) FROM likes WHERE post_id = p.id), 0) AS likes_count
+      FROM 
+        posts p
+      LEFT JOIN 
+        users u ON p.user_id = u.id
+      ORDER BY 
+        p.created_at ${order} 
+      LIMIT 
+        $1 OFFSET $2
+    `;
+    fullQueryParams = [limit, offset];
+  }
 
   try {
-    const result = await query(sqlQuery, queryParams);
+    const result = await query(sqlQuery, fullQueryParams);
 
     const totalItemsResult = await query(
       `
-            SELECT COUNT(*) AS total
-            FROM posts p
-            LEFT JOIN users u ON p.user_id = u.id
-            ${username ? "WHERE u.username = $1" : ""}
-        `,
+        SELECT COUNT(*) AS total
+        FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        ${username ? "WHERE u.username = $1" : ""}
+      `,
       username ? [username] : []
     );
 
     const totalItems = parseInt(totalItemsResult.rows[0].total, 10);
-
     const totalPages = Math.ceil(totalItems / limit);
     const nextPage = page < totalPages ? page + 1 : null;
     const previousPage = page > 1 ? page - 1 : null;
@@ -58,7 +91,12 @@ export async function getAllPosts(params: GetPostsParams) {
 
     return {
       ok: true,
-      data: result.rows.map((post) => GetPostSchema.parse(post)),
+      data: result.rows.map((post) => {
+        return {
+          ...GetPostSchema.parse(post),
+          likesCount: post.likes_count,
+        };
+      }),
       pagination,
     };
   } catch (error) {
@@ -83,6 +121,7 @@ export async function insertPost({
 
   const params = [content, userId];
   const result = await query(sql, params);
+
 
   return result.rows[0];
 }
@@ -121,11 +160,9 @@ export const checkIfUserLikedPost = async (postId: number, userId: number) => {
     [postId, userId]
   );
 
-  // Asegurarse de que result.rowCount no sea null
   return result.rowCount !== null && result.rowCount > 0;
 };
 
-// Insertar un like en la tabla likes
 export const likePostInDb = async (postId: number, userId: number) => {
   await query(
     `INSERT INTO likes (post_id, user_id) VALUES ($1, $2)`,
@@ -133,7 +170,6 @@ export const likePostInDb = async (postId: number, userId: number) => {
   );
 };
 
-// Obtener el número de likes para un post específico
 export const getLikeCountForPost = async (postId: number) => {
   const result: QueryResult = await query(
     `SELECT COUNT(*) AS likes_count FROM likes WHERE post_id = $1`,
