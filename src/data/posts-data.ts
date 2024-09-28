@@ -151,25 +151,36 @@ export const getPostById = async (postId: number) => {
 };
 
 export async function removeLikeFromPost(postId: number, userId: number) {
-    try {
-      const post = await query('SELECT * FROM posts WHERE id = $1', [postId]);
-      
-      if (!post.rows.length) {
-        throw new Error('Post not found');
-      }
-  
-      // Eliminar el like del post
-      const result = await query(
-        'DELETE FROM likes WHERE post_id = $1 AND user_id = $2 RETURNING *',
-        [postId, userId]
-      );
-  
-      if (!result.rows.length) {
-        throw new Error('Like not found');
-      }
-  
-      return post.rows[0]; // Devuelve el post original
-    } catch (error) {
-      throw error;
+  try {
+    const post = await query('SELECT * FROM posts WHERE id = $1', [postId]);
+
+    if (!post.rows.length) {
+      throw new Error('Post not found');
     }
+
+    const result = await query(
+      'DELETE FROM likes WHERE post_id = $1 AND user_id = $2 RETURNING *',
+      [postId, userId]
+    );
+
+    if (!result.rows.length) {
+      throw new Error('Like not found');
+    }
+
+    const likesCountResult = await query(
+      'SELECT COUNT(*) as likes_count FROM likes WHERE post_id = $1',
+      [postId]
+    );
+
+    const likesCount = parseInt(likesCountResult.rows[0].likes_count, 10);
+
+    return {
+      ...post.rows[0],
+      likesCount,
+    };
+  } catch (error) {
+    console.error('Error in removeLikeFromPost:', error);
+    throw error;
   }
+}
+

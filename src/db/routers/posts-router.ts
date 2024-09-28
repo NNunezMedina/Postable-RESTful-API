@@ -8,10 +8,11 @@ import {
 } from "../services/posts-service";
 import { GetPost } from "../models/posts";
 import { authenticateUser } from "../middleware/authenticate";
+import { ApiError } from "../middleware/error";
 
 const postsRouter = Router();
 
-postsRouter.get("/posts", async (req, res) => {
+postsRouter.get("/posts", async (req, res, next) => {
   try {
     const { page, limit, username, orderBy, order } = req.query;
 
@@ -27,11 +28,11 @@ postsRouter.get("/posts", async (req, res) => {
     return res.json(posts);
   } catch (error) {
     console.error("Error getting posts:", error);
-    return res.status(500).json({ ok: false, message: "Error getting posts." });
+    return next(new ApiError("Error getting posts", 500));
   }
 });
 
-postsRouter.get("/posts/:username", async (req, res) => {
+postsRouter.get("/posts/:username", async (req, res, next) => {
   try {
     const { page, limit, orderBy, order } = req.query;
     const { username } = req.params;
@@ -48,121 +49,100 @@ postsRouter.get("/posts/:username", async (req, res) => {
     return res.json(posts);
   } catch (error) {
     console.error("Error getting posts:", error);
-    return res.status(500).json({ ok: false, message: "Error getting posts." });
+    return next(new ApiError("Error getting posts", 500));
   }
 });
 
-postsRouter.post("/posts", authenticateUser, async (req, res) => {
+postsRouter.post("/posts", authenticateUser, async (req, res, next) => {
   try {
     const { content } = req.body;
     const userId = req.user?.id;
 
     if (typeof userId !== "number") {
-      return res
-        .status(401)
-        .json({ ok: false, message: "Unauthorized: Invalid user ID." });
+      throw new ApiError("Unauthorized: Invalid user ID.", 401);
     }
 
     const newPost = await createNewPost({ content, userId });
     return res.status(201).json({ ok: true, data: newPost });
-  } catch (error: any) {
-    if (error.message === "Invalid input data.") {
-      return res
-        .status(400)
-        .json({ ok: false, message: "Validation error: " + error.message });
-    }
+  } catch (error) {
     console.error("Error creating post:", error);
-    return res.status(500).json({ ok: false, message: "Error creating post." });
+    return next(new ApiError("Error creating post", 500));
   }
 });
 
-postsRouter.patch("/posts/:id", authenticateUser, async (req, res) => {
+postsRouter.patch("/posts/:id", authenticateUser, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { content } = req.body;
 
     if (!content) {
-      return res.status(400).json({
-        ok: false,
-        message: "At least one field must be provided for update.",
-      });
+      throw new ApiError(
+        "At least one field must be provided for update.",
+        400
+      );
     }
 
     const userId = req.user?.id;
 
     if (userId === undefined) {
-      return res
-        .status(401)
-        .json({ ok: false, message: "Unauthorized access." });
+      throw new ApiError("Unauthorized access.", 401);
     }
 
     const updatedPost = await updatePost({ id: Number(id), content, userId });
     return res.json({ ok: true, data: updatedPost });
-  } catch (error: any) {
-    if (error.message === "Post not found.") {
-      return res.status(404).json({ ok: false, message: "Post not found." });
-    }
-    if (error.message === "Unauthorized access.") {
-      return res
-        .status(401)
-        .json({ ok: false, message: "Unauthorized access." });
-    }
-    console.error("Error updating post:", error);
-    return res.status(500).json({ ok: false, message: "Error updating post." });
-  }
-});
-
-postsRouter.post("/posts/:postId/like", authenticateUser, async (req, res) => {
-  const { postId } = req.params; // postId es un string
-  const userId = req.user?.id; // Obteniendo el userId del objeto req después de la autenticación
-
-  // Comprobar si userId está presente y es un número
-  if (typeof userId !== "number") {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-
-  try {
-    // Convertir postId a número
-    const numericPostId = parseInt(postId, 10);
-    if (isNaN(numericPostId)) {
-      return res.status(400).json({ message: "Invalid postId" });
-    }
-
-    // Intentar dar like al post
-    const response = await likePost(userId, numericPostId);
-    return res.status(200).json(response); // Asegúrate de retornar la respuesta aquí
   } catch (error) {
-    // Manejo de errores
-    if (error instanceof Error) {
-      if (error.message === "User has already liked this post") {
-        return res
-          .status(400)
-          .json({ message: "You have already liked this post" });
-      } else if (error.message === "Post not found") {
-        return res.status(404).json({ message: "Post not found" });
-      } else {
-        return res.status(500).json({ message: "Error liking post" });
-      }
-    } else {
-      return res.status(500).json({ message: "An unknown error occurred" });
-    }
+    console.error("Error updating post:", error);
+    return next(new ApiError("Error updating post.", 500));
   }
 });
+
+postsRouter.post(
+  "/posts/:postId/like",
+  authenticateUser,
+  async (req, res, next) => {
+    const { postId } = req.params;
+    const userId = req.user?.id;
+
+    if (typeof userId !== "number") {
+      throw new ApiError("Unauthorized", 401);
+    }
+
+    try {
+      const numericPostId = parseInt(postId, 10);
+      if (isNaN(numericPostId)) {
+        throw new ApiError("Invalid postId", 400);
+      }
+
+      const response = await likePost(userId, numericPostId);
+      return res.status(200).json(response);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "User has already liked this post") {
+          return next(new ApiError("You have already liked this post", 400));
+        } else if (error.message === "Post not found") {
+          return next(new ApiError("Post not found", 404));
+        }
+      }
+      console.error("Error liking post:", error);
+      return next(new ApiError("Error liking post", 500));
+    }
+  }
+);
 
 postsRouter.delete(
   "/posts/:postId/like",
   authenticateUser,
-  async (req, res) => {
-    const { postId } = req.params; // postId es un string
-    const userId = req.user?.id; // Asumiendo que el middleware establece req.user
+  async (req, res, next) => {
+    const { postId } = req.params;
+    const userId = req.user?.id;
 
-    // Verifica si userId está definido
     if (userId === undefined) {
-      return res.status(401).json({ ok: false, message: "Unauthorized" });
+      return next(new ApiError("Unauthorized", 401));
     }
 
     try {
-      const post = await deleteLike(parseInt(postId), userId); // Asegúrate de que postId sea un número
+      const post = await deleteLike(parseInt(postId), userId);
+      const likesCount = Math.max((post.likesCount ?? 0) - 1, 0);
       return res.status(200).json({
         ok: true,
         data: {
@@ -171,30 +151,19 @@ postsRouter.delete(
           createdAt: post.createdAt,
           updatedAt: post.updatedAt,
           username: post.username,
-          likesCount: post.likesCount - 1, // Actualiza el contador de likes si es necesario
+          likesCount,
         },
       });
     } catch (error) {
-      // Manejo de errores
       if (error instanceof Error) {
-        if (error.message === "User has already liked this post") {
-          return res
-            .status(400)
-            .json({ ok: false, message: "You have already liked this post" });
-        } else if (error.message === "Post not found") {
-          return res.status(404).json({ ok: false, message: "Post not found" });
+        if (error.message === "Post not found") {
+          return next(new ApiError("Post not found", 404));
         } else if (error.message === "Like not found") {
-          return res.status(404).json({ ok: false, message: "Like not found" });
-        } else {
-          return res
-            .status(500)
-            .json({ ok: false, message: "Error unliking post" });
+          return next(new ApiError("Like not found", 404));
         }
-      } else {
-        return res
-          .status(500)
-          .json({ ok: false, message: "An unknown error occurred" });
       }
+      console.error("Error unliking post:", error);
+      return next(new ApiError("Error unliking post", 500));
     }
   }
 );

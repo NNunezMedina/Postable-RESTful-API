@@ -1,6 +1,6 @@
 import z from "zod";
 import {
-    checkIfUserLikedPost,
+  checkIfUserLikedPost,
   findPostById,
   getAllPosts,
   getLikeCountForPost,
@@ -38,10 +38,10 @@ export async function createNewPost({
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error("Validation error:", error.errors);
-      throw new Error("Invalid input data.");
+      throw new ApiError("Invalid input data.", 400);
     } else {
       console.error("Error creating post:", error);
-      throw new Error("Error creating post.");
+      throw new ApiError("Error creating post.", 500);
     }
   }
 }
@@ -75,50 +75,45 @@ export async function updatePost({
 }
 
 export const likePost = async (userId: number, postId: number) => {
-    // Verificar si el usuario ya ha dado like al post
-    const alreadyLiked = await checkIfUserLikedPost(postId, userId);
-    if (alreadyLiked) {
-      throw new Error('User has already liked this post');
-    }
-  
-    // Insertar el like en la base de datos
-    await likePostInDb(postId, userId);
-  
-    // Obtener el número de likes actualizados para el post
-    const likesCount = await getLikeCountForPost(postId);
-  
-    // Obtener la información del post
-    const post = await getPostById(postId);
-    if (!post) {
-      throw new Error('Post not found');
-    }
-  
-    // Retornar los datos del post con la cuenta de likes actualizada
-    return {
-      ok: true,
-      data: {
-        id: post.id,
-        content: post.content,
-        createdAt: post.created_at,
-        updatedAt: post.updated_at,
-        username: 'usuario', // Aquí deberías usar lógica para obtener el nombre de usuario basado en user_id si es necesario
-        likesCount: likesCount,
-      },
-    };
-  };
-
-  export async function deleteLike(postId: number, userId: number) {
-    try {
-      const post = await removeLikeFromPost(postId, userId);
-      return post;
-    } catch (error) {
-      const e = error as Error; // Afirmación de tipo
-  
-      if (e.message === 'Post not found') {
-        throw { status: 404, message: 'Post not found' };
-      } else if (e.message === 'Like not found') {
-        throw { status: 404, message: 'Like not found' };
-      }
-      throw { status: 500, message: 'Internal Server Error' };
-    }
+  const alreadyLiked = await checkIfUserLikedPost(postId, userId);
+  if (alreadyLiked) {
+    throw new ApiError("User has already liked this post", 400);
   }
+
+  await likePostInDb(postId, userId);
+
+  const likesCount = await getLikeCountForPost(postId);
+
+  const post = await getPostById(postId);
+  if (!post) {
+    throw new ApiError("Post not found", 404);
+  }
+
+  return {
+    ok: true,
+    data: {
+      id: post.id,
+      content: post.content,
+      createdAt: post.created_at,
+      updatedAt: post.updated_at,
+      username: "usuario",
+      likesCount: likesCount,
+    },
+  };
+};
+
+export async function deleteLike(postId: number, userId: number) {
+  try {
+    const post = await removeLikeFromPost(postId, userId);
+    return post;
+  } catch (error) {
+    const e = error as Error;
+
+    if (e.message === "Post not found") {
+      throw new ApiError("Post not found", 404);
+    } else if (e.message === "Like not found") {
+      throw new ApiError("Like not found", 404);
+    }
+    throw new ApiError("Internal Server Error", 500);
+  }
+}

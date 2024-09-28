@@ -50,7 +50,7 @@ authRouter.post("/login", async (req, res, next) => {
       name: user.username,
     };
 
-    const token = jwt.sign(payload, jwtSecret, { expiresIn: "10m" });
+    const token = jwt.sign(payload, jwtSecret, { expiresIn: "20m" });
 
     res.json({ ok: true, data: { token } });
   } catch (error) {
