@@ -17,7 +17,6 @@ export default function errorHandler(
   res: Response,
   _next: NextFunction
 ) {
-  console.log("Error handler!");
   if (error instanceof ApiError) {
     res.status(error.status).json({
       ok: false,
@@ -27,7 +26,6 @@ export default function errorHandler(
       },
     });
   } else {
-    console.log(error);
     res.status(500).json({
       ok: false,
       error: {

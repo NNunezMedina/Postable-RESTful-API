@@ -25,7 +25,7 @@ export const GetPostSchema = z.object({
 
   export const PostResponseSchema = z.object({
     ok: z.boolean(),
-    data: GetPostSchema // Reutiliza GetPostSchema para validar la estructura del post
+    data: GetPostSchema
 });
 
 export type PostResponse = z.infer<typeof PostResponseSchema>;
