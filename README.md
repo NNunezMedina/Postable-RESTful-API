@@ -15,5 +15,7 @@ npm run db:migrate up
 
 # 5. REALIZAR PRUEBAS EN THUNDER CLIENT
 
+# 6. CORRER TESTS
+npm run test
 
 
